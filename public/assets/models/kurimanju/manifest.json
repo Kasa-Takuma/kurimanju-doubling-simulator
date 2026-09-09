@@ -1,0 +1,55 @@
+{
+  "format": "glTF 2.0 Binary",
+  "unit": "metre",
+  "up_axis": "+Y",
+  "long_axis": "+X",
+  "dimensions_m": {
+    "x": 0.065,
+    "y": 0.03,
+    "z": 0.043
+  },
+  "bounds_m": {
+    "min": [
+      -0.0325,
+      -0.015,
+      -0.0215
+    ],
+    "max": [
+      0.0325,
+      0.015,
+      0.0215
+    ]
+  },
+  "ground_offset_m": 0.015,
+  "metallic": 0,
+  "lods": [
+    {
+      "file": "kurimanju_lod0.glb",
+      "triangles": 24000,
+      "texture_size": 4096,
+      "bytes": 33060736,
+      "distance_m": 0
+    },
+    {
+      "file": "kurimanju_lod1.glb",
+      "triangles": 6000,
+      "texture_size": 2048,
+      "bytes": 9541516,
+      "distance_m": 3
+    },
+    {
+      "file": "kurimanju_lod2.glb",
+      "triangles": 1200,
+      "texture_size": 1024,
+      "bytes": 2593992,
+      "distance_m": 12
+    },
+    {
+      "file": "kurimanju_lod3.glb",
+      "triangles": 240,
+      "texture_size": 256,
+      "bytes": 197184,
+      "distance_m": 40
+    }
+  ]
+}
