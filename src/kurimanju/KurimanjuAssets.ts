@@ -14,7 +14,7 @@ export interface KurimanjuAssetsResult {
   loadedFiles: string[];
 }
 
-const LOD_URLS = [0, 1, 2, 3].map((lod) => `/assets/models/kurimanju/kurimanju_lod${lod}.glb`);
+const LOD_URLS = [0, 1, 2, 3].map((lod) => `${import.meta.env.BASE_URL}assets/models/kurimanju/kurimanju_lod${lod}.glb`);
 
 export class KurimanjuAssets {
   private readonly loader = new GLTFLoader();
