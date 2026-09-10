@@ -87,7 +87,7 @@ export class App {
     this.lastFrameTime = timestamp;
     const snapshot = this.simulation.update(deltaSeconds);
     this.camera.update();
-    this.world?.update(this.camera.globalPosition, timestamp / 1000);
+    this.world?.update(this.camera.globalPosition);
     this.kurimanju?.update(this.camera.globalPosition);
     if (this.world && this.kurimanju && this.hud) {
       const stats = this.kurimanju.getStats();

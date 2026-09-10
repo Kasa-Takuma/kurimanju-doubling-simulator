@@ -2,7 +2,6 @@ import {
   BufferGeometry,
   Color,
   DoubleSide,
-  DynamicDrawUsage,
   Euler,
   Group,
   InstancedMesh,
@@ -14,6 +13,7 @@ import {
   PlaneGeometry,
   Quaternion,
   Scene,
+  StaticDrawUsage,
   NoColorSpace,
   Texture,
   TextureLoader,
@@ -52,8 +52,6 @@ interface GrassInstance {
   rotationY: number;
   scale: number;
   variation: number;
-  phase: number;
-  windStrength: number;
 }
 
 interface GrassVariant {
@@ -82,7 +80,6 @@ export class Grass {
   private readonly quaternion = new Quaternion();
   private readonly euler = new Euler(0, 0, 0, 'YXZ');
   private readonly color = new Color();
-  private currentTime = 0;
   private hasRealAsset = false;
 
   constructor(heightAt: HeightSampler) {
@@ -97,7 +94,7 @@ export class Grass {
     this.fallbackMesh = new InstancedMesh(fallbackGeometry, fallbackMaterial, GRASS_COUNT);
     this.fallbackMesh.name = 'fallback-grass';
     this.fallbackMesh.count = 0;
-    this.fallbackMesh.instanceMatrix.setUsage(DynamicDrawUsage);
+    this.fallbackMesh.instanceMatrix.setUsage(StaticDrawUsage);
     this.fallbackMesh.castShadow = false;
     this.fallbackMesh.receiveShadow = false;
     this.group.add(this.fallbackMesh);
@@ -109,15 +106,12 @@ export class Grass {
     this.rebuild(0, 0);
   }
 
-  update(cameraX: number, cameraZ: number, timeSeconds = this.currentTime): void {
+  update(cameraX: number, cameraZ: number): void {
     const centerX = Math.floor(cameraX / PATCH_STEP) * PATCH_STEP;
     const centerZ = Math.floor(cameraZ / PATCH_STEP) * PATCH_STEP;
-    this.currentTime = timeSeconds;
     if (centerX !== this.patchCenter.x || centerZ !== this.patchCenter.z) {
       this.rebuild(centerX, centerZ);
-      return;
     }
-    this.writeMatrices(timeSeconds);
   }
 
   private async loadRealAsset(): Promise<void> {
@@ -139,7 +133,7 @@ export class Grass {
         const material = this.prepareMaterial(source.material, alphaMap);
         const mesh = new InstancedMesh(geometry, material, MAX_INSTANCES_PER_VARIANT);
         mesh.name = this.variants[index].name;
-        mesh.instanceMatrix.setUsage(DynamicDrawUsage);
+        mesh.instanceMatrix.setUsage(StaticDrawUsage);
         mesh.count = 0;
         mesh.castShadow = true;
         mesh.receiveShadow = false;
@@ -206,8 +200,6 @@ export class Grass {
         rotationY: random.range(0, Math.PI * 2),
         scale: random.range(0.78, 1.16) * GRASS_WORLD_SCALE,
         variation: random.signed(0.5),
-        phase: random.range(0, Math.PI * 2),
-        windStrength: random.range(0.55, 1),
       };
       this.placements.push(instance);
       this.variants[this.selectVariant(random.next())].instances.push(instance);
@@ -216,13 +208,13 @@ export class Grass {
     if (this.hasRealAsset) {
       this.writeColors();
     }
-    this.writeMatrices(this.currentTime);
+    this.writeMatrices();
   }
 
-  private writeMatrices(timeSeconds: number): void {
+  private writeMatrices(): void {
     if (!this.hasRealAsset) {
       for (let index = 0; index < this.placements.length; index += 1) {
-        this.writeInstance(this.fallbackMesh, index, this.placements[index], timeSeconds);
+        this.writeInstance(this.fallbackMesh, index, this.placements[index]);
         this.color.set(0.7, 0.88, 0.48);
         this.fallbackMesh.setColorAt(index, this.color);
       }
@@ -241,7 +233,7 @@ export class Grass {
       const visibleCount = Math.min(variant.instances.length, MAX_INSTANCES_PER_VARIANT);
       for (let index = 0; index < visibleCount; index += 1) {
         const instance = variant.instances[index];
-        this.writeInstance(variant.mesh, index, instance, timeSeconds);
+        this.writeInstance(variant.mesh, index, instance);
       }
       variant.mesh.count = visibleCount;
       variant.mesh.instanceMatrix.needsUpdate = true;
@@ -269,13 +261,9 @@ export class Grass {
     }
   }
 
-  private writeInstance(mesh: InstancedMesh, index: number, instance: GrassInstance, timeSeconds: number): void {
-    const windPhase = timeSeconds * 1.25 + instance.phase + instance.x * 1.7 + instance.z * 1.35;
-    const gustPhase = timeSeconds * 0.43 + instance.phase * 0.61;
-    const leanX = Math.sin(windPhase) * 0.085 * instance.windStrength + Math.sin(gustPhase) * 0.025;
-    const leanZ = Math.cos(windPhase * 0.91) * 0.07 * instance.windStrength;
+  private writeInstance(mesh: InstancedMesh, index: number, instance: GrassInstance): void {
     this.position.set(instance.x, instance.y, instance.z);
-    this.euler.set(leanX, instance.rotationY, leanZ, 'YXZ');
+    this.euler.set(0, instance.rotationY, 0, 'YXZ');
     this.quaternion.setFromEuler(this.euler);
     this.scale.setScalar(instance.scale);
     this.matrix.compose(this.position, this.quaternion, this.scale);

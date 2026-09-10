@@ -20,9 +20,9 @@ export class World {
     this.ready = this.grass.ready;
   }
 
-  update(cameraPosition: Vector3, timeSeconds = 0): void {
+  update(cameraPosition: Vector3): void {
     this.terrain.update(this.scene, cameraPosition.x, cameraPosition.z);
-    this.grass.update(cameraPosition.x, cameraPosition.z, timeSeconds);
+    this.grass.update(cameraPosition.x, cameraPosition.z);
   }
 
   reset(): void {
