@@ -25,12 +25,14 @@ import { randomFor } from '../utils/random';
 const GRASS_URL = `${import.meta.env.BASE_URL}assets/models/grass/grass_medium_01_1k.gltf`;
 const GRASS_ALPHA_URL = `${import.meta.env.BASE_URL}assets/models/grass/textures/grass_medium_01_alpha_1k.png`;
 const GRASS_PATCH_SIZE = 48;
-const GRASS_COUNT = 6200;
-const GRASS_WORLD_SCALE = 0.62;
-const CLUSTER_COUNT = 180;
-const MAX_INSTANCES_PER_VARIANT = 1800;
+const GRASS_COUNT = 36000;
+const GRASS_WORLD_SCALE = 0.78;
+const CLUSTER_COUNT = 420;
+const CLUSTERED_PROBABILITY = 0.35;
+const CLUSTER_RADIUS = 0.75;
+const MAX_INSTANCES_PER_VARIANT = 14000;
 const PATCH_STEP = 16;
-const CLEAR_RADIUS = 0.45;
+const CLEAR_RADIUS = 0.18;
 
 const GRASS_VARIANT_NAMES = [
   'grass_medium_01_small_a_LOD0',
@@ -186,12 +188,12 @@ export class Grass {
     while (this.placements.length < GRASS_COUNT && attempts < GRASS_COUNT * 4) {
       attempts += 1;
       const cluster = clusters[random.integer(clusters.length)];
-      const clustered = random.next() < 0.74;
+      const clustered = random.next() < CLUSTERED_PROBABILITY;
       const x = clustered
-        ? cluster.x + random.signed(1.15)
+        ? cluster.x + random.signed(CLUSTER_RADIUS)
         : centerX + random.range(-GRASS_PATCH_SIZE / 2, GRASS_PATCH_SIZE / 2);
       const z = clustered
-        ? cluster.z + random.signed(1.15)
+        ? cluster.z + random.signed(CLUSTER_RADIUS)
         : centerZ + random.range(-GRASS_PATCH_SIZE / 2, GRASS_PATCH_SIZE / 2);
       if (Math.hypot(x, z) < CLEAR_RADIUS) {
         continue;
