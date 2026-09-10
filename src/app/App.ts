@@ -45,7 +45,7 @@ export class App {
       this.setLoadingMessage('栗饅頭アセットを確認中');
       const assets = await new KurimanjuAssets().load();
 
-      this.setLoadingMessage('草原と観察カメラを構築中');
+      this.setLoadingMessage('フィールドと観察カメラを構築中');
       this.world = new World();
       await this.world.ready;
       this.kurimanju = new KurimanjuSystem(this.world.scene, assets, this.physics);

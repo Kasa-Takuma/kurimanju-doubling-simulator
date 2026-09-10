@@ -13,7 +13,8 @@ import {
 import { MeshStandardNodeMaterial } from 'three/webgpu';
 import { attribute } from 'three/tsl';
 import { KurimanjuAssetsResult } from './KurimanjuAssets';
-import { LODLevel, selectLOD } from './KurimanjuLOD';
+import { LODLevel, lodThresholdsForCount, selectLOD } from './KurimanjuLOD';
+import { MAX_VISIBLE_INSTANCES } from './PopulationModel';
 
 export interface RenderableInstance {
   x: number;
@@ -29,7 +30,7 @@ export interface KurimanjuRenderStats {
   lodCounts: [number, number, number, number];
 }
 
-const MAX_INSTANCES_PER_LOD = [4000, 8000, 12000, 18000] as const;
+const INITIAL_INSTANCES_PER_LOD = [4000, 8000, 12000, 18000] as const;
 
 export class KurimanjuRenderer {
   readonly group = new Group();
@@ -66,8 +67,9 @@ export class KurimanjuRenderer {
       material.transparent = true;
       material.depthWrite = false;
       material.opacityNode = attribute('instanceFade', 'float');
-      const mesh = new InstancedMesh(asset.geometry, material, MAX_INSTANCES_PER_LOD[lod]);
-      const fadeAttribute = new InstancedBufferAttribute(new Float32Array(MAX_INSTANCES_PER_LOD[lod]), 1);
+      const mesh = new InstancedMesh(asset.geometry, material, INITIAL_INSTANCES_PER_LOD[lod]);
+      mesh.instanceMatrix.setUsage(DynamicDrawUsage);
+      const fadeAttribute = new InstancedBufferAttribute(new Float32Array(INITIAL_INSTANCES_PER_LOD[lod]), 1);
       fadeAttribute.setUsage(DynamicDrawUsage);
       fadeAttribute.array.fill(1);
       asset.geometry.setAttribute('instanceFade', fadeAttribute);
@@ -91,22 +93,20 @@ export class KurimanjuRenderer {
 
   update(instances: readonly RenderableInstance[], cameraPosition: Vector3): void {
     const buckets: RenderableInstance[][] = [[], [], [], []];
+    const thresholds = lodThresholdsForCount(instances.length);
     this.stats.lodCounts = [0, 0, 0, 0];
 
     for (let index = 0; index < instances.length; index += 1) {
       const instance = instances[index];
       const distance = Math.hypot(instance.x - cameraPosition.x, instance.z - cameraPosition.z);
-      const lod = selectLOD(distance, this.previousLOD.get(index) ?? null);
+      const lod = selectLOD(distance, this.previousLOD.get(index) ?? null, thresholds);
       this.previousLOD.set(index, lod);
-      const bucket = buckets[lod];
-      if (bucket.length < MAX_INSTANCES_PER_LOD[lod]) {
-        bucket.push(instance);
-      }
+      buckets[lod].push(instance);
     }
 
     for (let lod = 0; lod < this.meshes.length; lod += 1) {
-      const mesh = this.meshes[lod];
       const bucket = buckets[lod];
+      const mesh = this.ensureCapacity(lod, bucket.length);
       for (let index = 0; index < bucket.length; index += 1) {
         const instance = bucket[index];
         this.position.set(instance.x, instance.y, instance.z);
@@ -138,6 +138,32 @@ export class KurimanjuRenderer {
 
   getAssetStatus(): string {
     return this.assetsStatus;
+  }
+
+  private ensureCapacity(lod: number, required: number): InstancedMesh {
+    const current = this.meshes[lod];
+    if (required <= current.instanceMatrix.count) {
+      return current;
+    }
+
+    const capacity = Math.min(MAX_VISIBLE_INSTANCES, Math.max(required, current.instanceMatrix.count * 2));
+    const replacement = new InstancedMesh(current.geometry, current.material, capacity);
+    replacement.instanceMatrix.setUsage(DynamicDrawUsage);
+    replacement.name = current.name;
+    replacement.castShadow = current.castShadow;
+    replacement.receiveShadow = current.receiveShadow;
+    replacement.frustumCulled = current.frustumCulled;
+
+    const fadeAttribute = new InstancedBufferAttribute(new Float32Array(capacity), 1);
+    fadeAttribute.setUsage(DynamicDrawUsage);
+    fadeAttribute.array.fill(1);
+    current.geometry.setAttribute('instanceFade', fadeAttribute);
+
+    this.group.remove(current);
+    this.group.add(replacement);
+    this.meshes[lod] = replacement;
+    this.fadeAttributes[lod] = fadeAttribute;
+    return replacement;
   }
 }
 

@@ -33,10 +33,12 @@ export class KurimanjuSystem {
   private readonly proceduralInstances: RenderableInstance[] = [];
   private readonly renderInstances: RenderableInstance[] = [];
   private readonly cameraPosition = new Vector3();
+  private readonly lastRenderCameraPosition = new Vector3(Number.POSITIVE_INFINITY, 0, 0);
   private generation = 0;
   private lastPlacementGeneration = -1;
   private lastPlacementChunkX = Number.NaN;
   private lastPlacementChunkZ = Number.NaN;
+  private physicsWasActive = true;
 
   constructor(scene: Scene, assets: KurimanjuAssetsResult, physics: KurimanjuPhysics) {
     this.physics = physics;
@@ -52,6 +54,8 @@ export class KurimanjuSystem {
     this.renderInstances.length = 0;
     this.generation = 0;
     this.lastPlacementGeneration = -1;
+    this.lastRenderCameraPosition.set(Number.POSITIVE_INFINITY, 0, 0);
+    this.physicsWasActive = true;
     this.spawnInitial();
   }
 
@@ -71,7 +75,14 @@ export class KurimanjuSystem {
   update(cameraPosition: Vector3): void {
     this.physics.step();
     this.cameraPosition.copy(cameraPosition);
-    this.refreshProceduralInstances();
+    const placementChanged = this.refreshProceduralInstances();
+    const physicsIsActive = this.physics.getStats().activeBodyCount > 0;
+    const cameraMoved = this.cameraPosition.distanceToSquared(this.lastRenderCameraPosition) > 1e-12;
+    if (!placementChanged && !physicsIsActive && !this.physicsWasActive && !cameraMoved) {
+      return;
+    }
+    this.physicsWasActive = physicsIsActive;
+    this.lastRenderCameraPosition.copy(this.cameraPosition);
     this.renderInstances.length = 0;
     for (const instance of this.physicalInstances) {
       const translation = instance.body.body.translation();
@@ -145,7 +156,7 @@ export class KurimanjuSystem {
     }
   }
 
-  private refreshProceduralInstances(): void {
+  private refreshProceduralInstances(): boolean {
     const chunkX = Math.floor(this.cameraPosition.x / PLACEMENT_CHUNK_SIZE);
     const chunkZ = Math.floor(this.cameraPosition.z / PLACEMENT_CHUNK_SIZE);
     if (
@@ -153,7 +164,7 @@ export class KurimanjuSystem {
       chunkZ === this.lastPlacementChunkZ &&
       this.generation === this.lastPlacementGeneration
     ) {
-      return;
+      return false;
     }
 
     this.lastPlacementChunkX = chunkX;
@@ -162,7 +173,7 @@ export class KurimanjuSystem {
     this.proceduralInstances.length = 0;
     const stage = populationSnapshot(this.generation).stage;
     if (stage === 'A') {
-      return;
+      return true;
     }
 
     const target = estimatedVisibleCount(this.generation);
@@ -207,5 +218,6 @@ export class KurimanjuSystem {
         }
       }
     }
+    return true;
   }
 }

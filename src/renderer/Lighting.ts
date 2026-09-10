@@ -1,7 +1,7 @@
 import { DirectionalLight, HemisphereLight, Scene } from 'three';
 
 export function installLighting(scene: Scene): void {
-  const sun = new DirectionalLight(0xfff3d8, 3.2);
+  const sun = new DirectionalLight(0xffffff, 3.2);
   sun.position.set(-45, 70, 25);
   sun.castShadow = true;
   sun.shadow.mapSize.set(2048, 2048);
@@ -14,6 +14,6 @@ export function installLighting(scene: Scene): void {
   sun.shadow.bias = -0.0002;
   scene.add(sun);
 
-  const skyLight = new HemisphereLight(0xb8dcff, 0x75834e, 1.35);
+  const skyLight = new HemisphereLight(0xdde5ee, 0x60656b, 1.35);
   scene.add(skyLight);
 }

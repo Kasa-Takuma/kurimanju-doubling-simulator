@@ -6,8 +6,8 @@ const ACTIVE_RADIUS = 3;
 export class Terrain {
   private readonly geometry = new PlaneGeometry(TERRAIN_CHUNK_SIZE, TERRAIN_CHUNK_SIZE, 32, 32);
   private readonly material = new MeshStandardMaterial({
-    color: 0x63864b,
-    roughness: 0.96,
+    color: 0x777b80,
+    roughness: 1,
     metalness: 0,
   });
   private readonly chunks = new Map<string, Mesh>();

@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_LOD_THRESHOLDS, KURIMANJU_MODEL_LENGTH_M, selectLOD } from '../src/kurimanju/KurimanjuLOD';
+import {
+  DEFAULT_LOD_THRESHOLDS,
+  KURIMANJU_MODEL_LENGTH_M,
+  lodThresholdsForCount,
+  selectLOD,
+} from '../src/kurimanju/KurimanjuLOD';
 
 describe('LOD selection', () => {
   it('scales distance ranges to the measured model size', () => {
@@ -19,5 +24,12 @@ describe('LOD selection', () => {
   it('uses hysteresis around a previous level', () => {
     expect(selectLOD(0.25, 0)).toBe(0);
     expect(selectLOD(0.35, 1)).toBe(1);
+  });
+
+  it('narrows high-detail ranges as the visible population grows', () => {
+    expect(lodThresholdsForCount(1024)).toEqual(DEFAULT_LOD_THRESHOLDS);
+    expect(lodThresholdsForCount(4096).lod2).toBeCloseTo(2.08);
+    expect(lodThresholdsForCount(12000).lod2).toBeCloseTo(1.56);
+    expect(lodThresholdsForCount(24000).lod2).toBeCloseTo(1.17);
   });
 });

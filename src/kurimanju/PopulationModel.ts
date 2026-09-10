@@ -1,6 +1,7 @@
 import { formatPopulation } from '../utils/formatting';
 
 export type RepresentationStage = 'A' | 'B' | 'C';
+export const MAX_VISIBLE_INSTANCES = 60000;
 
 export interface PopulationSnapshot {
   generation: number;
@@ -37,9 +38,9 @@ export function estimatedVisibleCount(generation: number): number {
     return 2 ** safeGeneration;
   }
   if (safeGeneration < 22) {
-    return Math.min(24000, 1024 + (safeGeneration - 10) * 1800);
+    return Math.min(24000, 2 ** safeGeneration);
   }
-  return Math.min(60000, 24000 + (safeGeneration - 22) * 1200);
+  return Math.min(MAX_VISIBLE_INSTANCES, 24000 + (safeGeneration - 22) * 1200);
 }
 
 export function populationSnapshot(generation: number): PopulationSnapshot {

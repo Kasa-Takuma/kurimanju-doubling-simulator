@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { exactPopulationNumber, populationSnapshot, representationStage } from '../src/kurimanju/PopulationModel';
+import {
+  exactPopulationNumber,
+  MAX_VISIBLE_INSTANCES,
+  populationSnapshot,
+  representationStage,
+} from '../src/kurimanju/PopulationModel';
 import { formatPopulation } from '../src/utils/formatting';
 
 describe('population model', () => {
@@ -20,5 +25,12 @@ describe('population model', () => {
     expect(representationStage(0)).toBe('A');
     expect(representationStage(11)).toBe('B');
     expect(representationStage(22)).toBe('C');
+  });
+
+  it('keeps the visible population exact around 4,096 and caps only at the global limit', () => {
+    expect(populationSnapshot(11).estimatedVisibleCount).toBe(2048);
+    expect(populationSnapshot(12).estimatedVisibleCount).toBe(4096);
+    expect(populationSnapshot(13).estimatedVisibleCount).toBe(8192);
+    expect(populationSnapshot(1000).estimatedVisibleCount).toBe(MAX_VISIBLE_INSTANCES);
   });
 });
