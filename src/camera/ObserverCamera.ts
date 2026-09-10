@@ -1,5 +1,12 @@
 import { Euler, PerspectiveCamera, Vector2, Vector3 } from 'three';
+import { KURIMANJU_MODEL_LENGTH_M } from '../kurimanju/KurimanjuLOD';
 import { clamp } from '../utils/math';
+
+export const CAMERA_NEAR_CLIP = 0.005;
+export const CAMERA_ZOOM_PER_WHEEL_DELTA = KURIMANJU_MODEL_LENGTH_M * 0.1;
+export const CAMERA_PAN_PER_PIXEL = KURIMANJU_MODEL_LENGTH_M * 0.02;
+export const CAMERA_PINCH_PER_PIXEL = KURIMANJU_MODEL_LENGTH_M * 0.02;
+const MAX_ZOOM_STEP = KURIMANJU_MODEL_LENGTH_M * 6;
 
 interface PointerState {
   x: number;
@@ -9,7 +16,7 @@ interface PointerState {
 }
 
 export class ObserverCamera {
-  readonly camera = new PerspectiveCamera(55, 1, 0.02, 1200);
+  readonly camera = new PerspectiveCamera(55, 1, CAMERA_NEAR_CLIP, 1200);
   readonly globalPosition = new Vector3(0, 0.44, 0.82);
   private readonly pointers = new Map<number, PointerState>();
   private readonly previousGestureCenter = new Vector2();
@@ -110,7 +117,9 @@ export class ObserverCamera {
 
   private readonly onWheel = (event: WheelEvent): void => {
     event.preventDefault();
-    this.camera.translateZ(event.deltaY * 0.018);
+    const delta = event.deltaMode === WheelEvent.DOM_DELTA_LINE ? event.deltaY * 16 : event.deltaY;
+    const movement = clamp(delta * CAMERA_ZOOM_PER_WHEEL_DELTA, -MAX_ZOOM_STEP, MAX_ZOOM_STEP);
+    this.camera.translateZ(movement);
     this.update();
   };
 
@@ -131,15 +140,20 @@ export class ObserverCamera {
     const center = new Vector2((values[0].x + values[1].x) / 2, (values[0].y + values[1].y) / 2);
     const distance = Math.hypot(values[0].x - values[1].x, values[0].y - values[1].y);
     this.pan(center.x - this.previousGestureCenter.x, center.y - this.previousGestureCenter.y);
-    this.camera.translateZ((this.previousGestureDistance - distance) * 0.012);
+    const zoomDelta = clamp(
+      (this.previousGestureDistance - distance) * CAMERA_PINCH_PER_PIXEL,
+      -MAX_ZOOM_STEP,
+      MAX_ZOOM_STEP,
+    );
+    this.camera.translateZ(zoomDelta);
     this.previousGestureCenter.copy(center);
     this.previousGestureDistance = distance;
     this.update();
   }
 
   private pan(dx: number, dy: number): void {
-    this.camera.translateX(-dx * 0.018);
-    this.camera.translateY(dy * 0.018);
+    this.camera.translateX(-dx * CAMERA_PAN_PER_PIXEL);
+    this.camera.translateY(dy * CAMERA_PAN_PER_PIXEL);
     this.update();
   }
 

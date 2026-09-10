@@ -1,6 +1,9 @@
-import { Mesh, MeshStandardMaterial, PlaneGeometry, Scene } from 'three';
+import { GridHelper, LineBasicMaterial, Mesh, MeshStandardMaterial, PlaneGeometry, Scene } from 'three';
 
 export const TERRAIN_CHUNK_SIZE = 64;
+export const GRID_CELL_SIZE_M = 0.1;
+export const GRID_SIZE_M = TERRAIN_CHUNK_SIZE / 8;
+export const GRID_DIVISIONS = Math.round(GRID_SIZE_M / GRID_CELL_SIZE_M);
 const ACTIVE_RADIUS = 3;
 
 export class Terrain {
@@ -10,15 +13,38 @@ export class Terrain {
     roughness: 1,
     metalness: 0,
   });
+  private readonly grid = new GridHelper(GRID_SIZE_M, GRID_DIVISIONS, 0x51565d, 0x969ba1);
   private readonly chunks = new Map<string, Mesh>();
   private lastCenterX = Number.NaN;
   private lastCenterZ = Number.NaN;
+  private lastGridCenterX = Number.NaN;
+  private lastGridCenterZ = Number.NaN;
+
+  constructor() {
+    this.grid.name = 'field-grid';
+    this.grid.position.y = 0.001;
+    this.grid.renderOrder = 1;
+    if (this.grid.material instanceof LineBasicMaterial) {
+      this.grid.material.transparent = true;
+      this.grid.material.opacity = 0.48;
+      this.grid.material.depthWrite = false;
+    }
+  }
 
   addTo(scene: Scene): void {
     this.update(scene, 0, 0);
   }
 
   update(scene: Scene, cameraX: number, cameraZ: number): void {
+    const gridCenterX = Math.round(cameraX / GRID_SIZE_M) * GRID_SIZE_M;
+    const gridCenterZ = Math.round(cameraZ / GRID_SIZE_M) * GRID_SIZE_M;
+    if (gridCenterX !== this.lastGridCenterX || gridCenterZ !== this.lastGridCenterZ) {
+      this.lastGridCenterX = gridCenterX;
+      this.lastGridCenterZ = gridCenterZ;
+      this.grid.position.set(gridCenterX, 0.001, gridCenterZ);
+      scene.add(this.grid);
+    }
+
     const centerX = Math.floor(cameraX / TERRAIN_CHUNK_SIZE);
     const centerZ = Math.floor(cameraZ / TERRAIN_CHUNK_SIZE);
     if (centerX === this.lastCenterX && centerZ === this.lastCenterZ) {
