@@ -9,7 +9,13 @@ import {
 } from './PopulationModel';
 import { KURIMANJU_HALF_EXTENTS, KurimanjuPhysics, MAX_RAPIER_BODIES, PHYSICS_REGION_RADIUS, PhysicsBodyState, PhysicsStats } from './KurimanjuPhysics';
 import { KurimanjuRenderer, KurimanjuRenderStats, RenderableInstance } from './KurimanjuRenderer';
-import { generateChunkPlacement, PLACEMENT_CHUNK_SIZE } from './KurimanjuPlacement';
+import {
+  estimateMoundRadius,
+  generateChunkPlacement,
+  generateMoundPlacement,
+  MOUND_HEIGHT_RATIO,
+  PLACEMENT_CHUNK_SIZE,
+} from './KurimanjuPlacement';
 
 const GLOBAL_SEED = 0x4b555249;
 const PHYSICAL_GENERATION_LIMIT = 10;
@@ -157,8 +163,9 @@ export class KurimanjuSystem {
   }
 
   private refreshProceduralInstances(): boolean {
-    const chunkX = Math.floor(this.cameraPosition.x / PLACEMENT_CHUNK_SIZE);
-    const chunkZ = Math.floor(this.cameraPosition.z / PLACEMENT_CHUNK_SIZE);
+    const stage = populationSnapshot(this.generation).stage;
+    const chunkX = stage === 'C' ? Math.floor(this.cameraPosition.x / PLACEMENT_CHUNK_SIZE) : 0;
+    const chunkZ = stage === 'C' ? Math.floor(this.cameraPosition.z / PLACEMENT_CHUNK_SIZE) : 0;
     if (
       chunkX === this.lastPlacementChunkX &&
       chunkZ === this.lastPlacementChunkZ &&
@@ -171,51 +178,72 @@ export class KurimanjuSystem {
     this.lastPlacementChunkZ = chunkZ;
     this.lastPlacementGeneration = this.generation;
     this.proceduralInstances.length = 0;
-    const stage = populationSnapshot(this.generation).stage;
     if (stage === 'A') {
       return true;
     }
 
     const target = estimatedVisibleCount(this.generation);
     const remaining = Math.max(0, target - this.physicalInstances.length);
-    const clusterRadius = stage === 'B'
-      ? 22 + (this.generation - 10) * 7
-      : Math.min(9000, 120 + (this.generation - 22) * 36);
     const density = stage === 'B'
       ? Math.min(0.92, 0.5 + (this.generation - 10) * 0.035)
       : Math.min(0.98, 0.78 + (this.generation - 22) * 0.012);
-    const searchRadius = Math.min(CHUNK_SEARCH_LIMIT, Math.ceil(clusterRadius / PLACEMENT_CHUNK_SIZE) + 2);
-    const pileHeight = stage === 'C' ? Math.min(28, (this.generation - 20) * 0.75) : 0;
+    if (stage === 'B') {
+      const clusterRadius = estimateMoundRadius(remaining, density, PHYSICS_REGION_RADIUS);
+      const pileHeight = Math.max(0.18, clusterRadius * MOUND_HEIGHT_RATIO);
+      const centerZ = Math.min(0, PHYSICS_REGION_RADIUS - clusterRadius);
+      this.proceduralInstances.push(...generateMoundPlacement({
+        generation: this.generation,
+        globalSeed: GLOBAL_SEED,
+        density,
+        clusterRadius,
+        innerRadius: PHYSICS_REGION_RADIUS,
+        pileHeight,
+        maxInstances: remaining,
+        centerZ,
+      }));
+      return true;
+    }
 
-    for (let dz = -searchRadius; dz <= searchRadius && this.proceduralInstances.length < remaining; dz += 1) {
-      for (let dx = -searchRadius; dx <= searchRadius && this.proceduralInstances.length < remaining; dx += 1) {
-        const placements = generateChunkPlacement({
-          chunkX: chunkX + dx,
-          chunkZ: chunkZ + dz,
-          generation: this.generation,
-          globalSeed: GLOBAL_SEED,
-          density,
-          clusterRadius,
-          maxInstances: remaining - this.proceduralInstances.length,
-          centerX: 0,
-          centerZ: 0,
-        });
-        for (const placement of placements) {
-          const cameraDistance = Math.hypot(placement.x - this.cameraPosition.x, placement.z - this.cameraPosition.z);
-          if (cameraDistance < PHYSICS_REGION_RADIUS + 2) {
-            continue;
-          }
-          const clusterDistance = Math.hypot(placement.x, placement.z);
-          const surfaceFactor = clusterRadius > 0 ? Math.max(0, 1 - clusterDistance / clusterRadius) : 0;
-          this.proceduralInstances.push({
-            ...placement,
-            y: placement.y + Math.pow(surfaceFactor, 0.7) * pileHeight,
-            scale: placement.scale * (1 + surfaceFactor * 0.04),
-          });
-          if (this.proceduralInstances.length >= remaining) {
-            break;
-          }
+    const clusterRadius = Math.min(9000, 10 * 1.38 ** (this.generation - 22));
+    const searchRadius = Math.min(CHUNK_SEARCH_LIMIT, Math.ceil(clusterRadius / PLACEMENT_CHUNK_SIZE) + 2);
+    const pileHeight = Math.min(300, clusterRadius * 0.2);
+    const offsets: Array<{ x: number; z: number }> = [];
+    for (let z = -searchRadius; z <= searchRadius; z += 1) {
+      for (let x = -searchRadius; x <= searchRadius; x += 1) {
+        offsets.push({ x, z });
+      }
+    }
+    offsets.sort((a, b) => a.x * a.x + a.z * a.z - (b.x * b.x + b.z * b.z));
+
+    for (const offset of offsets) {
+      const placements = generateChunkPlacement({
+        chunkX: chunkX + offset.x,
+        chunkZ: chunkZ + offset.z,
+        generation: this.generation,
+        globalSeed: GLOBAL_SEED,
+        density,
+        clusterRadius,
+        maxInstances: remaining - this.proceduralInstances.length,
+        centerX: 0,
+        centerZ: 0,
+      });
+      for (const placement of placements) {
+        const clusterDistance = Math.hypot(placement.x, placement.z);
+        if (clusterDistance < PHYSICS_REGION_RADIUS) {
+          continue;
         }
+        const surfaceFactor = clusterRadius > 0 ? Math.max(0, 1 - clusterDistance / clusterRadius) : 0;
+        this.proceduralInstances.push({
+          ...placement,
+          y: placement.y + Math.pow(surfaceFactor, 0.7) * pileHeight,
+          scale: placement.scale * (1 + surfaceFactor * 0.04),
+        });
+        if (this.proceduralInstances.length >= remaining) {
+          break;
+        }
+      }
+      if (this.proceduralInstances.length >= remaining) {
+        break;
       }
     }
     return true;

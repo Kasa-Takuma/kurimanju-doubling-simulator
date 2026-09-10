@@ -1,7 +1,7 @@
 import * as RAPIER from '@dimforge/rapier3d-compat';
 import { Vector3 } from 'three';
 
-export const PHYSICS_REGION_RADIUS = 12;
+export const PHYSICS_REGION_RADIUS = 0.5;
 export const MAX_RAPIER_BODIES = 1500;
 export const HARD_MAX_RAPIER_BODIES = 2500;
 export const CCD_SPEED_THRESHOLD = 7;
