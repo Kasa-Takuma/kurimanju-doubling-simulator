@@ -35,21 +35,21 @@
       "triangles": 6000,
       "texture_size": 2048,
       "bytes": 9541516,
-      "distance_m": 3
+      "distance_m": 0.195
     },
     {
       "file": "kurimanju_lod2.glb",
       "triangles": 1200,
       "texture_size": 1024,
       "bytes": 2593992,
-      "distance_m": 12
+      "distance_m": 0.78
     },
     {
       "file": "kurimanju_lod3.glb",
       "triangles": 240,
       "texture_size": 256,
       "bytes": 197184,
-      "distance_m": 40
+      "distance_m": 2.6
     }
   ]
 }

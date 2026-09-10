@@ -5,11 +5,15 @@ export interface LODThresholds {
   hysteresis: number;
 }
 
+// The source distance profile was authored for a one-metre-class model.
+// Scale it by the measured 6.5 cm long axis of the Kurimanju asset.
+export const KURIMANJU_MODEL_LENGTH_M = 0.065;
+
 export const DEFAULT_LOD_THRESHOLDS: LODThresholds = {
-  lod0: 3,
-  lod1: 12,
-  lod2: 40,
-  hysteresis: 1.5,
+  lod0: 3 * KURIMANJU_MODEL_LENGTH_M,
+  lod1: 12 * KURIMANJU_MODEL_LENGTH_M,
+  lod2: 40 * KURIMANJU_MODEL_LENGTH_M,
+  hysteresis: 1.5 * KURIMANJU_MODEL_LENGTH_M,
 };
 
 export type LODLevel = 0 | 1 | 2 | 3;
