@@ -47,6 +47,7 @@ export class App {
 
       this.setLoadingMessage('草原と観察カメラを構築中');
       this.world = new World();
+      await this.world.ready;
       this.kurimanju = new KurimanjuSystem(this.world.scene, assets, this.physics);
       this.hud = new HUD({
         onTogglePause: () => this.simulation.clock.togglePaused(),
@@ -86,7 +87,7 @@ export class App {
     this.lastFrameTime = timestamp;
     const snapshot = this.simulation.update(deltaSeconds);
     this.camera.update();
-    this.world?.update(this.camera.globalPosition);
+    this.world?.update(this.camera.globalPosition, timestamp / 1000);
     this.kurimanju?.update(this.camera.globalPosition);
     if (this.world && this.kurimanju && this.hud) {
       const stats = this.kurimanju.getStats();

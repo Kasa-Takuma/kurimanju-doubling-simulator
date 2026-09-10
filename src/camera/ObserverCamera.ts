@@ -9,13 +9,13 @@ interface PointerState {
 }
 
 export class ObserverCamera {
-  readonly camera = new PerspectiveCamera(55, 1, 0.05, 1200);
-  readonly globalPosition = new Vector3(0, 4.5, 12);
+  readonly camera = new PerspectiveCamera(55, 1, 0.02, 1200);
+  readonly globalPosition = new Vector3(0, 0.44, 0.82);
   private readonly pointers = new Map<number, PointerState>();
   private readonly previousGestureCenter = new Vector2();
   private previousGestureDistance = 0;
   private yaw = 0;
-  private pitch = -0.16;
+  private pitch = -0.34;
   private canvas: HTMLCanvasElement | null = null;
 
   constructor() {
@@ -52,15 +52,15 @@ export class ObserverCamera {
   }
 
   reset(): void {
-    this.globalPosition.set(0, 4.5, 12);
+    this.globalPosition.set(0, 0.44, 0.82);
     this.camera.position.copy(this.globalPosition);
     this.yaw = 0;
-    this.pitch = -0.16;
+    this.pitch = -0.34;
     this.applyRotation();
   }
 
   update(): void {
-    this.camera.position.y = Math.max(0.35, this.camera.position.y);
+    this.camera.position.y = Math.max(0.08, this.camera.position.y);
     this.globalPosition.copy(this.camera.position);
   }
 

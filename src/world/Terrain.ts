@@ -1,5 +1,4 @@
 import { Mesh, MeshStandardMaterial, PlaneGeometry, Scene } from 'three';
-import { positiveModulo } from '../utils/math';
 
 export const TERRAIN_CHUNK_SIZE = 64;
 const ACTIVE_RADIUS = 3;
@@ -42,7 +41,7 @@ export class Terrain {
           this.chunks.set(key, chunk);
         }
         scene.add(chunk);
-        chunk.position.set(x * TERRAIN_CHUNK_SIZE + TERRAIN_CHUNK_SIZE / 2, -0.03, z * TERRAIN_CHUNK_SIZE + TERRAIN_CHUNK_SIZE / 2);
+        chunk.position.set(x * TERRAIN_CHUNK_SIZE + TERRAIN_CHUNK_SIZE / 2, 0, z * TERRAIN_CHUNK_SIZE + TERRAIN_CHUNK_SIZE / 2);
       }
     }
 
@@ -54,8 +53,10 @@ export class Terrain {
   }
 
   sampleHeight(x: number, z: number): number {
-    // A stable, very shallow variation keeps the ground from looking mathematical
-    // while remaining gentle enough that settled bodies do not roll forever.
-    return Math.sin(x * 0.045) * 0.018 + Math.cos(z * 0.037) * 0.014 + positiveModulo(x + z, 1) * 0.001;
+    // The visual terrain is a flat plane and the physics ground has its top at y=0.
+    // Keep both surfaces aligned so the 6.5 cm model does not appear to float.
+    void x;
+    void z;
+    return 0;
   }
 }
